@@ -56,13 +56,13 @@ class address_getter:
         self.total_result_df = pd.DataFrame()
 
     def address_typer(self, driver, city, region, road):
-        idx = 0
         #不知為啥只能怎樣 反正要把字串符號加進去
         city = f"""\"{city}\""""
         driver.find_element(By.XPATH, (f"""//area[contains(@title, {city})]""")).click()
-        time.sleep(2)
         region = f"""{region}"""
+        
         #選擇區域(下拉式選單)
+        wait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, f"""//select[@id='areaCode']""")))
         region_select = Select(driver.find_element(By.XPATH, (f"""//select[@id='areaCode']""")))
         region_select.select_by_visible_text(f"""{region}""")
         #寫路
@@ -83,6 +83,8 @@ class address_getter:
         return result   
     
     def run(self):
+        
+        self.address_typer(self.driver, self.city, self.region, self.road)
         
         while True:
             try:
@@ -169,16 +171,23 @@ if __name__ == "__main__":
     idx = 0
     
     # 輸入之前做到的index
-    start_idx = idx
+    # 看資料夾下面的pickle的檔名數字
+    start_idx = 0
     print(start_idx)
     
     driver = webdriver.Chrome(chromedriver_path)
     
     #生成住址檔案
     total_result_df = pd.DataFrame()
+    
     for idx in tq.tqdm(range(start_idx-1, len(path_df))):
     # for idx in tq.tqdm(range(5)):
         while True:
+        #     #每一百次重啟一個，感覺重開比較沒什麼問題
+        #     if(idx%100==0):
+        #         driver.quit()
+        #         driver = webdriver.Chrome(chromedriver_path)
+            
             try:
                 # 開啟門牌第一頁頁面
                 driver.get("https://www.ris.gov.tw/info-doorplate/app/doorplate/main")
@@ -194,8 +203,8 @@ if __name__ == "__main__":
                 
                 total_result_df = total_result_df.append(address_getter_tool.run())
                 
-            except NoSuchElementException as e:
-                # 有時候還沒載入完畢或是502 bad gateway就重新執行吧
+            except Exception as e:
+                # 有時候還沒載入完畢或是502 bad gateway就重新執行吧 或其他各種疑難雜症
                 continue
             break
             

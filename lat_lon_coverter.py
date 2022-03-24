@@ -35,14 +35,21 @@ if __name__ == "__main__":
     # 生成經緯度
     lat_list = []
     lon_list = []
+    # for i in range(len(total_result_df)):
     for i in range(len(total_result_df)):
         while True:
+            
+            #每一百次重啟一個，因為我不知道為什麼會怪怪的，地圖會開始卡在定位中
+            if(i%100==0):
+                lat_lon_driver.quit()
+                lat_lon_driver = webdriver.Chrome(chromedriver_path)
+                
             try:
                 lat_addr = total_result_df['address'].iloc[i]
                 lat_lon_driver.get(f"""https://map.tgos.tw/TGOSCloud/Web/Map/TGOSViewer_Map.aspx?addr={lat_addr}""")
 
 
-                lat_lon_text_div = wait(lat_lon_driver, 30).until(
+                lat_lon_text_div = wait(lat_lon_driver, 15).until(
                     # 找到有lat lon的div
                     EC.presence_of_element_located((By.XPATH, f"""//*[@id="MapBox"]/div[1]/div[2]/div"""))
                 )
@@ -59,13 +66,14 @@ if __name__ == "__main__":
                 if(i%10==0):
                     print(i)
             except TimeoutException:
-                #有問題就重試
-                continue
+                #有問題就換下一個
+                break
             break
-            
-    total_result_df['lat'] = lat_list
-    total_result_df['lon'] = lon_list
+                
+        total_result_df['lat'] = lat_list
+        total_result_df['lon'] = lon_list
     
+    total_result_df.to_pickle(f"""total_result_df_lat_lon{i}""")
     
         
         
