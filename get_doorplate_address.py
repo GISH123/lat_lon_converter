@@ -179,7 +179,7 @@ if __name__ == "__main__":
     
     #生成住址檔案
     total_result_df = pd.DataFrame()
-    
+
     for idx in tq.tqdm(range(start_idx-1, len(path_df))):
     # for idx in tq.tqdm(range(5)):
         while True:
@@ -203,12 +203,17 @@ if __name__ == "__main__":
                 
                 total_result_df = total_result_df.append(address_getter_tool.run())
                 
+            except KeyboardInterrupt:
+                sys.exit(1)
             except Exception as e:
                 # 有時候還沒載入完畢或是502 bad gateway就重新執行吧 或其他各種疑難雜症
                 continue
             break
-            
-    total_result_df.to_pickle(f"""addres_idx_{start_idx}_to_{idx}.p""")
-    
-    
-    
+        
+        # 儲存檔案 每1000筆
+        if(idx%1000==0):
+            total_result_df.to_pickle(f"""addres_idx_{start_idx}_to_{idx}.p""")
+            start_idx = idx
+        
+        
+        

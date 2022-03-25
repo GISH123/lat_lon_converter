@@ -35,8 +35,11 @@ if __name__ == "__main__":
     # 生成經緯度
     lat_list = []
     lon_list = []
+    
+    idx = 0
+    
     # for i in range(len(total_result_df)):
-    for i in range(len(total_result_df)):
+    for i in range(idx,len(total_result_df)):
         while True:
             
             #每一百次重啟一個，因為我不知道為什麼會怪怪的，地圖會開始卡在定位中
@@ -69,6 +72,7 @@ if __name__ == "__main__":
                 #有問題就換下一個
                 break
             break
+            
                 
         total_result_df['lat'] = lat_list
         total_result_df['lon'] = lon_list
