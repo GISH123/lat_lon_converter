@@ -18,7 +18,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait as wait
 import re
+from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import WebDriverException
 
 if __name__ == "__main__":
     chrome_options = Options()
@@ -84,6 +87,9 @@ if __name__ == "__main__":
                     lat_list.append(None)
                     lon_list.append(None)                
                     break
+                except WebDriverException:
+                    #斷線的時候發生的exception
+                    continue
                 break
                 
             # 5000筆存一次
