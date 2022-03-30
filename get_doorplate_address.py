@@ -169,7 +169,7 @@ if __name__ == "__main__":
     path_df.reset_index(drop=True)
     
     # 取區域，即site_id為後三碼
-    path_df['region'] = path_df['site_id'].str[-3:]
+    path_df['region'] = path_df['site_id'].str[3:]
     
     current_version = "99"
     chrome_options = Options()
@@ -221,15 +221,18 @@ if __name__ == "__main__":
             except Exception as e:
                 # 有時候還沒載入完畢或是502 bad gateway就重新執行吧 或其他各種疑難雜症
                 fail_n_times += 1
-                # 在這個環節如果卡了超過30次就重開chrome webdriver
-                if(fail_n_times >= 30):
+                #在這個環節如果卡了超過30次就重開chrome webdriver
+                if(fail_n_times > 30):
                     driver.quit()
                     driver = webdriver.Chrome(chromedriver_path, options = chrome_options)
+                # 如果還是再卡住了10次乾脆跳過這筆吧
+                elif(fail_n_times >= 40):
+                    break
                 continue
             break
         
         # 儲存檔案 每1000筆
-        if(idx%1000==0):
+        if((idx != 0) and (idx%1000==0)):
             total_result_df.to_pickle(f"""./address/addres_idx_{start_idx}_to_{idx}.p""")
             start_idx = idx
             total_result_df = pd.DataFrame()
