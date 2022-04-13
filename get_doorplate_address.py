@@ -236,6 +236,6 @@ if __name__ == "__main__":
             total_result_df.to_pickle(f"""./address/addres_idx_{start_idx}_to_{idx}.p""")
             start_idx = idx
             total_result_df = pd.DataFrame()
-        
-        
-        
+        if(idx==len(path_df)-1):
+            total_result_df.to_pickle(f"""./address/addres_idx_{start_idx}_to_{idx}.p""")
+            break
