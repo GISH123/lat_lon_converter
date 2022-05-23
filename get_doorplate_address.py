@@ -94,13 +94,20 @@ class address_getter:
                 while True:
                     try:
                         captcha = self.get_current_captcha(self.driver)
+                    except KeyboardInterrupt:
+                        sys.exit(1)
                     except:
                         continue
                     break
                 
+                # 等待captcha image出現
+                wait(driver, 20).until(EC.presence_of_element_located((By.XPATH, f"""//*[@id="captchaImage_captchaKey"]""")))
+                
                 self.driver.find_element(By.XPATH, (f"""//input[@id="captchaInput_captchaKey"]""")).send_keys(captcha)
                 self.driver.find_element(By.XPATH, (f"""//button[@id="goSearch"]""")).click()
-                wait(self.driver, 15).until(EC.presence_of_element_located((By.XPATH, f"""//td[@data-jqlabel='門牌資料']""")))
+                wait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, f"""//td[@data-jqlabel='門牌資料']""")))
+            except KeyboardInterrupt:
+                sys.exit(1)
             except (TimeoutException, ConnectionError) as e:
                 # 如果失敗的話(可能偶爾認證碼錯誤之類的吧)就重試
                 self.driver.find_element(By.XPATH, (f"""//input[@id="captchaInput_captchaKey"]""")).clear()
@@ -110,6 +117,8 @@ class address_getter:
                     self.driver.find_element(By.XPATH, (f"""//button[@class="swal2-confirm swal2-styled"]""")).click()
                     # 沒有查無資料確定的按鈕就跳出本次迴圈，繼續搜下一個地區
                     return pd.DataFrame()
+                except KeyboardInterrupt:
+                    sys.exit(1)
                 except NoSuchElementException as e:
                     continue
                     
@@ -134,6 +143,8 @@ class address_getter:
             #拿到結果，按下一頁(超過五十個結果要額外按下一頁)
             try:
                 self.driver.find_element(By.XPATH, f"""//td[@id='next_result-pager']""").click()
+            except KeyboardInterrupt:
+                sys.exit(1)
             except:
                 #如果不能按下一頁(即最後一頁)則停止蒐資料
                 break
@@ -158,7 +169,7 @@ if __name__ == "__main__":
     path_df.reset_index(drop=True)
     
     # 取區域，即site_id為後三碼
-    path_df['region'] = path_df['site_id'].str[-3:]
+    path_df['region'] = path_df['site_id'].str[3:]
     
     current_version = "99"
     chrome_options = Options()
@@ -171,24 +182,26 @@ if __name__ == "__main__":
     idx = 0
     
     # 輸入之前做到的index
-    # 看資料夾下面的pickle的檔名數字
-    start_idx = 0
-    print(start_idx)
+    # 看資料夾下面的pickle的檔名數字+1
+    # 以千為單位
+    start_idx = 12001
     
     driver = webdriver.Chrome(chromedriver_path)
     
     #生成住址檔案
     total_result_df = pd.DataFrame()
-    
-    for idx in tq.tqdm(range(start_idx-1, len(path_df))):
-    # for idx in tq.tqdm(range(5)):
+
+    for idx in range(start_idx, len(path_df)):
+        fail_n_times = 0
         while True:
-        #     #每一百次重啟一個，感覺重開比較沒什麼問題
-        #     if(idx%100==0):
-        #         driver.quit()
-        #         driver = webdriver.Chrome(chromedriver_path)
+            #每五百次重啟一個，感覺重開比較沒什麼問題
+            if(idx%500==0):
+                print(idx)
+                driver.quit()
+                driver = webdriver.Chrome(chromedriver_path, options = chrome_options)
             
             try:
+                
                 # 開啟門牌第一頁頁面
                 driver.get("https://www.ris.gov.tw/info-doorplate/app/doorplate/main")
                 #點擊門牌查詢
@@ -203,12 +216,26 @@ if __name__ == "__main__":
                 
                 total_result_df = total_result_df.append(address_getter_tool.run())
                 
+            except KeyboardInterrupt:
+                sys.exit(1)
             except Exception as e:
                 # 有時候還沒載入完畢或是502 bad gateway就重新執行吧 或其他各種疑難雜症
+                fail_n_times += 1
+                #在這個環節如果卡了超過30次就重開chrome webdriver
+                if(fail_n_times > 30):
+                    driver.quit()
+                    driver = webdriver.Chrome(chromedriver_path, options = chrome_options)
+                # 如果還是再卡住了10次乾脆跳過這筆吧
+                elif(fail_n_times >= 40):
+                    break
                 continue
             break
-            
-    total_result_df.to_pickle(f"""addres_idx_{start_idx}_to_{idx}.p""")
-    
-    
-    
+        
+        # 儲存檔案 每1000筆
+        if((idx != 0) and (idx%1000==0)):
+            total_result_df.to_pickle(f"""./address/addres_idx_{start_idx}_to_{idx}.p""")
+            start_idx = idx
+            total_result_df = pd.DataFrame()
+        if(idx==len(path_df)-1):
+            total_result_df.to_pickle(f"""./address/addres_idx_{start_idx}_to_{idx}.p""")
+            break
